@@ -1,16 +1,10 @@
 #!/bin/bash
 
-# Check for argument
-if [ -z "$1" ]; then
-  echo "Error: no directory provided."
-  exit 1
-fi
-
 # Kill any screens
 pkill SCREEN
 
 # Build and flash the specified directory
-west build -p always -b nrf52840dongle_nrf52840 $1 || exit 1
+west build -p always -b nrf52840dongle_nrf52840 pf/bsu || exit 1
 
 # Package the application for the bootloader, using nrfutil
 nrfutil pkg generate --hw-version 52 --sd-req=0x00 \

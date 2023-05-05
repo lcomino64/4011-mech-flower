@@ -8,7 +8,7 @@ project(bsu)
 
 include_directories(app PRIVATE ${OSLIB})
 
-set(BSU_DRIVERS ${OSLIB}/bsu_drivers)
-set(BSU_SOURCES ${BSU_DRIVERS}/bsu_hci/bsu_hci.c ${BSU_DRIVERS}/bsu_hci/bsu_hci.h)
+set(BSU_DRIVERS ${OSLIB}/bsu_hci)
+set(BSU_SOURCES ${BSU_DRIVERS}/bsu_hci.c ${BSU_DRIVERS}/bsu_hci.h)
 
 target_sources(app PRIVATE src/main.c ${BSU_SOURCES})
