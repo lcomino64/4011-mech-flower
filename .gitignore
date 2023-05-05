@@ -1,0 +1,8 @@
+# Ignore build dir
+build/
+# Ignore .vscode workspace files
+.vscode/
+# Ignore .DS_store files
+.DS*
+# Ignore .zip files (nrf dongle packages)
+*.zip
