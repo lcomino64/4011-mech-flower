@@ -1,6 +1,13 @@
 #include "bsu_hci.h"
 
-LOG_MODULE_REGISTER(base, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(cdc_acm_shell, CONFIG_LOG_DEFAULT_LEVEL);
+
+BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_shell_uart), zephyr_cdc_acm_uart),
+             "Console device is not ACM CDC UART device");
+
+// Declare shell to use cdc_acm_uart0
+#define SHELL_DEVICE_NODE DT_CHOSEN(zephyr_shell_uart)
+const struct device *shell_dev = DEVICE_DT_GET(SHELL_DEVICE_NODE);
 
 // Declare comms to use cdc_acm_uart1
 #define COMMS_DEVICE_NODE DT_CHOSEN(zephyr_usb_comms)
@@ -30,6 +37,17 @@ long convert_str_to_int(char *str) {
 }
 
 /**
+ * @brief Print bytes to a UART channel
+ */
+void print_uart(char *buf) {
+    int msg_len = strlen(buf);
+
+    for (int i = 0; i < msg_len; i++) {
+        uart_poll_out(comms_dev, buf[i]);
+    }
+}
+
+/**
  * @brief Helper method to convert received GATT values (hex) to string
  */
 void convert_hex_buf_to_str_mobile(uint8_t *rx_buf, uint16_t length) {
@@ -44,6 +62,7 @@ void convert_hex_buf_to_str_mobile(uint8_t *rx_buf, uint16_t length) {
     sprintf(tx_buf, "%s\r\n", str);
 
     printk("%s", tx_buf);
+    print_uart(tx_buf);
 }
 
 /**
@@ -141,6 +160,79 @@ void start_scan_mobile() {
 }
 
 /**
+ * @brief Command to interface with sensor readings via BLE
+ */
+void cmd_ble_get_mobile(const struct shell *shell, size_t argc, char **argv) {
+    if (!default_conn) {
+        LOG_ERR("Mobile Not connected");
+        return;
+    }
+
+    if (argc != 1) {
+        LOG_ERR("Invalid arg count");
+        return;
+    }
+
+    switch (argv[0][0]) {
+    case 'r':
+        bt_gatt_read(default_conn, &read_params_mobile);
+    }
+}
+
+/**
+ * @brief Command to activate scan
+ */
+void cmd_ble_scan_mobile(const struct shell *shell, size_t argc, char **argv) {
+    start_scan_mobile();
+}
+
+/**
+ * @brief
+ */
+void cmd_ble_sampling(const struct shell *shell, size_t argc, char **argv) {
+    if (!default_conn) {
+        LOG_ERR("AHU Not connected");
+        return;
+    }
+
+    if (!(argc == 2 || argc == 3)) {
+        LOG_ERR("Invalid arg count");
+        return;
+    }
+    long sample_rate;
+
+    switch (argv[0][0]) {
+    case 'c':
+        switch (argv[1][0]) {
+        case 'p':
+            gatt_read_sampling_enabled = ~gatt_read_sampling_enabled;
+            if (gatt_read_sampling_enabled) {
+                LOG_INF("Sampling enabled");
+                return;
+            }
+            LOG_INF("Sampling disabled");
+            break;
+        case 's':
+            sample_rate = convert_str_to_int(argv[2]);
+
+            if (sample_rate < 2 || sample_rate > 30) {
+                LOG_ERR("Sample rate given is out of range");
+                return;
+            }
+
+            gatt_read_sample_rate = sample_rate;
+            LOG_INF("Sample rate set to %ld seconds", sample_rate);
+            break;
+        default:
+            LOG_ERR("Invalid args");
+        }
+        break;
+    default:
+        LOG_ERR("Invalid command");
+    }
+}
+
+/**
  * @brief Callback for when device is connected
  */
 static void connected(struct bt_conn *conn, uint8_t err) {
@@ -189,6 +281,18 @@ static struct bt_conn_cb conn_callbacks = {
 };
 
 /**
+ * @brief Initalise shell commands and subcommands
+ */
+void init_bsu_shell() {
+    SHELL_STATIC_SUBCMD_SET_CREATE(
+        ble_func,
+        SHELL_CMD(c, NULL, "s = set sampling rate, p = toggle sampling", cmd_ble_sampling),
+        SHELL_CMD(r, NULL, "Read the mobile", cmd_ble_get_mobile),
+        SHELL_CMD(s, NULL, "Scan for mobile", cmd_ble_scan_mobile), SHELL_SUBCMD_SET_END);
+    SHELL_CMD_REGISTER(ble, &ble_func, "BLE Interface", NULL);
+}
+
+/**
  * @brief Thread for continuous sampling of mobile
  */
 void bsu_gatt_read_thread_mobile(void) {
@@ -204,8 +308,8 @@ void bsu_gatt_read_thread_mobile(void) {
  * @brief Main thread for Base Station Unit (BSU) command line interface implementation.
  */
 void bsu_shell_thread(void) {
-    if (!device_is_ready(comms_dev)) {
-        LOG_ERR("Device not ready");
+    if (!device_is_ready(shell_dev) || !device_is_ready(comms_dev)) {
+        LOG_ERR("CDC ACM device not ready");
         return;
     }
 
@@ -222,14 +326,25 @@ void bsu_shell_thread(void) {
 
     uint32_t dtr = 0;
     while (!dtr) {
+        uart_line_ctrl_get(shell_dev, UART_LINE_CTRL_DTR, &dtr);
+        k_sleep(K_MSEC(100));
+    }
+
+    dtr = 0;
+    while (!dtr) {
         uart_line_ctrl_get(comms_dev, UART_LINE_CTRL_DTR, &dtr);
         k_sleep(K_MSEC(100));
     }
+
+    init_bsu_shell();
 
     while (1) {
         k_msleep(100);
     }
 }
+
+K_THREAD_DEFINE(bsu_shell_thread_tid, BSU_SHELL_THREAD_STACK, bsu_shell_thread, NULL, NULL, NULL,
+                BSU_SHELL_THREAD_PRIORITY, 0, 0);
 
 K_THREAD_DEFINE(bsu_gatt_read_thread_mobile_tid, BSU_SHELL_THREAD_STACK,
                 bsu_gatt_read_thread_mobile, NULL, NULL, NULL, BSU_SHELL_THREAD_PRIORITY + 2, 0, 0);

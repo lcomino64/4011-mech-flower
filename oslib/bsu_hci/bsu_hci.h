@@ -7,6 +7,7 @@
 #include <string.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/shell/shell.h>
 #include <zephyr/usb/usb_device.h>
 
 #include <zephyr/bluetooth/bluetooth.h>

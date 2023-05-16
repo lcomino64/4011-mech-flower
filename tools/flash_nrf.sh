@@ -12,5 +12,5 @@ nrfutil pkg generate --hw-version 52 --sd-req=0x00 \
         --application-version 1 temp.zip
 
 # Flash the board
-nrfutil dfu usb-serial -pkg temp.zip -p /dev/cu.usbmodemC7C8FE462DC91 
+nrfutil dfu usb-serial -pkg temp.zip -p /dev/cu.usbmodemCBEE6B94CBCA1
 

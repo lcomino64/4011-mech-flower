@@ -1,7 +1,0 @@
-#include <espressif/esp32c3.dtsi>
-
-/ {
-    chosen {
-        zephyr,usb-comms = &uart0;
-    };
-};
