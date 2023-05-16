@@ -1,4 +1,4 @@
-#include "bsu_hci.h"
+#include "base_hci.h"
 
 LOG_MODULE_REGISTER(cdc_acm_shell, CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -17,7 +17,7 @@ static struct bt_conn *default_conn;
 
 // Globals
 long gatt_read_sample_rate = 2;         // 2s minimum
-uint8_t gatt_read_sampling_enabled = 0; // false
+uint8_t gatt_read_sampling_enabled = 1; // true
 
 /**
  * @brief helper method to convert a string to integer
@@ -187,11 +187,11 @@ void cmd_ble_scan_mobile(const struct shell *shell, size_t argc, char **argv) {
 }
 
 /**
- * @brief
+ * @brief Controller for sampling capabilities
  */
 void cmd_ble_sampling(const struct shell *shell, size_t argc, char **argv) {
     if (!default_conn) {
-        LOG_ERR("AHU Not connected");
+        LOG_ERR("Mobile Not connected");
         return;
     }
 
@@ -283,7 +283,7 @@ static struct bt_conn_cb conn_callbacks = {
 /**
  * @brief Initalise shell commands and subcommands
  */
-void init_bsu_shell() {
+void init_base_shell() {
     SHELL_STATIC_SUBCMD_SET_CREATE(
         ble_func,
         SHELL_CMD(c, NULL, "s = set sampling rate, p = toggle sampling", cmd_ble_sampling),
@@ -295,7 +295,10 @@ void init_bsu_shell() {
 /**
  * @brief Thread for continuous sampling of mobile
  */
-void bsu_gatt_read_thread_mobile(void) {
+void base_gatt_read_thread_mobile(void) {
+    // Begin scanning for mobile on start-up
+    start_scan_mobile();
+
     while (1) {
         if (default_conn && gatt_read_sampling_enabled) {
             bt_gatt_read(default_conn, &read_params_mobile);
@@ -305,9 +308,9 @@ void bsu_gatt_read_thread_mobile(void) {
 }
 
 /**
- * @brief Main thread for Base Station Unit (BSU) command line interface implementation.
+ * @brief Main thread for base command line interface implementation.
  */
-void bsu_shell_thread(void) {
+void base_shell_thread(void) {
     if (!device_is_ready(shell_dev) || !device_is_ready(comms_dev)) {
         LOG_ERR("CDC ACM device not ready");
         return;
@@ -336,15 +339,16 @@ void bsu_shell_thread(void) {
         k_sleep(K_MSEC(100));
     }
 
-    init_bsu_shell();
+    init_base_shell();
 
     while (1) {
         k_msleep(100);
     }
 }
 
-K_THREAD_DEFINE(bsu_shell_thread_tid, BSU_SHELL_THREAD_STACK, bsu_shell_thread, NULL, NULL, NULL,
-                BSU_SHELL_THREAD_PRIORITY, 0, 0);
+K_THREAD_DEFINE(base_shell_thread_tid, BASE_SHELL_THREAD_STACK, base_shell_thread, NULL, NULL, NULL,
+                BASE_SHELL_THREAD_PRIORITY, 0, 0);
 
-K_THREAD_DEFINE(bsu_gatt_read_thread_mobile_tid, BSU_SHELL_THREAD_STACK,
-                bsu_gatt_read_thread_mobile, NULL, NULL, NULL, BSU_SHELL_THREAD_PRIORITY + 2, 0, 0);
+K_THREAD_DEFINE(base_gatt_read_thread_mobile_tid, BASE_SHELL_THREAD_STACK,
+                base_gatt_read_thread_mobile, NULL, NULL, NULL, BASE_SHELL_THREAD_PRIORITY + 2, 0,
+                0);

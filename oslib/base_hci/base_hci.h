@@ -1,5 +1,5 @@
-#ifndef BSU_HCI
-#define BSU_HCI
+#ifndef BASE_HCI
+#define BASE_HCI
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,10 +18,10 @@
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/types.h>
 
-#define BSU_SHELL_THREAD_PRIORITY 1
-#define BSU_SHELL_THREAD_STACK 512
-#define BSU_PACKET_SIZE 32
-#define BSU_RESPONSE_TIMEOUT 100
+#define BASE_SHELL_THREAD_PRIORITY 1
+#define BASE_SHELL_THREAD_STACK 512
+#define BASE_PACKET_SIZE 32
+#define BASE_RESPONSE_TIMEOUT 100
 
 uint8_t ble_read_mobile(struct bt_conn *conn, uint8_t err, struct bt_gatt_read_params *params,
                         const void *data, uint16_t length);
