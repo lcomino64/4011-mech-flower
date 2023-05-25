@@ -18,13 +18,9 @@ http_header_t headers[] = {
 };
 
 void setup() {
-    Serial.begin(115200);
-
-    if (!crickit.begin()) {
-        Serial.println("ERROR!");
-        while (1)
-            ;
-    }
+    // Serial.begin(115200);
+    Serial1.begin(115200);
+    crickit.begin();
 
     stem_servo.attach(CRICKIT_SERVO1); // attaches the servo to CRICKIT_SERVO1 pin
 
@@ -67,13 +63,10 @@ void loop() {
         if (!error) {
             // Extract the value header
             String value = doc["result"][0]["value"];
-            Serial.printlnf(value);
+            Serial1.printf(value);
+            Serial1.printf("\n");
             set_petal_level(value.toInt());
         }
-
-    } else {
-        // There was a problem with the request
-        Serial.printlnf("Error: %d", response.status);
     }
 
     // Wait for 5 seconds before sending the next request
