@@ -26,6 +26,9 @@
 #include <zephyr/bluetooth/services/ias.h>
 #include <zephyr/bluetooth/uuid.h>
 
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/sensor/ccs811.h>
+
 #define MOBILE_PACKET_SIZE 32
 #define MOBILE_QUEUE_SIZE 8
 #define MOBILE_THREAD_PRIORITY 1
