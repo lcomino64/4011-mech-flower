@@ -41,7 +41,7 @@ int val_map(int value, int fromLow, int fromHigh, int toLow, int toHigh) {
 }
 
 void set_petal_level(int level) {
-    int level_scaled = val_map(level, 0, 100, 90, 180);
+    int level_scaled = val_map(level, 0, 100, 180, 90);
     stem_servo.write(level_scaled);
 }
 
