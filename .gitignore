@@ -6,3 +6,5 @@ build/
 .DS*
 # Ignore .zip files (nrf dongle packages)
 *.zip
+# Ignore compiled particle binaries
+*.bin
